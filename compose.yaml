@@ -1,0 +1,15 @@
+services:
+  oracle:
+    image: gvenzl/oracle-free:23-slim
+    container_name: specnote-oracle
+    ports:
+      - "1521:1521"
+    environment:
+      ORACLE_PASSWORD: oracle        # 관리자(SYS) 비밀번호
+      APP_USER: specnote             # 앱 전용 계정 자동 생성
+      APP_USER_PASSWORD: specnote
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+
+volumes:
+  oracle-data:
