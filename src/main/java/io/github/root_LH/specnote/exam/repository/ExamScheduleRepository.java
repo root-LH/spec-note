@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface ExamScheduleRepository extends JpaRepository<ExamSchedule, Long> {
 
@@ -43,4 +44,21 @@ public interface ExamScheduleRepository extends JpaRepository<ExamSchedule, Long
                                     @Param("category") ExamCategory category);
 
     boolean existsByExamIdAndRoundNameAndStage(Long examId, String roundName, ExamStage stage);
+
+    // ===== 알림 배치용: 특정 날짜에 해당하는 일정 (시험 정보까지 한 번에) =====
+
+    @Query("select s from ExamSchedule s join fetch s.exam where s.regStart = :date")
+    List<ExamSchedule> findWithExamByRegStart(@Param("date") LocalDate date);
+
+    @Query("select s from ExamSchedule s join fetch s.exam where s.regEnd = :date")
+    List<ExamSchedule> findWithExamByRegEnd(@Param("date") LocalDate date);
+
+    @Query("select s from ExamSchedule s join fetch s.exam where s.examDate = :date")
+    List<ExamSchedule> findWithExamByExamDate(@Param("date") LocalDate date);
+
+    @Query("select s from ExamSchedule s join fetch s.exam where s.resultDate = :date")
+    List<ExamSchedule> findWithExamByResultDate(@Param("date") LocalDate date);
+
+    @Query("select s from ExamSchedule s join fetch s.exam where s.id = :id")
+    Optional<ExamSchedule> findWithExamById(@Param("id") Long id);
 }
