@@ -3,7 +3,7 @@ import type { ExamCategory, IsoDate } from '../api/types'
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 
 /** "2026-12-13" → Date (시간대 영향 없이 그 날짜 0시) */
-function parseDate(value: IsoDate): Date {
+export function parseDate(value: IsoDate): Date {
   const [y, m, d] = value.split('-').map(Number)
   return new Date(y, m - 1, d)
 }
@@ -19,6 +19,13 @@ export function formatDate(value: IsoDate | null | undefined): string {
 export function formatShortDate(value: IsoDate | null | undefined): string {
   if (!value) return '미정'
   return value.slice(5).replace('-', '.')
+}
+
+/** "2026-11-19T08:00:01.123" → "2026.11.19 08:00" */
+export function formatDateTime(value: string | null | undefined): string {
+  if (!value) return '-'
+  const [date, time = ''] = value.split('T')
+  return `${date.replaceAll('-', '.')} ${time.slice(0, 5)}`.trim()
 }
 
 /** 오늘부터 그 날짜까지 남은 일수 (지났으면 음수) */
@@ -39,6 +46,10 @@ export function toIsoDate(date: Date): IsoDate {
   const m = String(date.getMonth() + 1).padStart(2, '0')
   const d = String(date.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
+}
+
+export function todayIso(): IsoDate {
+  return toIsoDate(new Date())
 }
 
 export const CATEGORY_LABEL: Record<ExamCategory, string> = {
