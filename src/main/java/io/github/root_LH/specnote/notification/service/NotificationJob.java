@@ -13,6 +13,8 @@ import io.github.root_LH.specnote.notification.repository.NotificationLogReposit
 import io.github.root_LH.specnote.notification.repository.NotificationSettingRepository;
 import io.github.root_LH.specnote.notification.sender.EmailSender;
 import io.github.root_LH.specnote.notification.sender.NotificationMessage;
+import io.github.root_LH.specnote.spec.domain.MemberSpec;
+import io.github.root_LH.specnote.spec.repository.MemberSpecRepository;
 import io.github.root_LH.specnote.subscription.domain.Subscription;
 import io.github.root_LH.specnote.subscription.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,8 +35,10 @@ import java.util.stream.Collectors;
 /**
  * 알림 배치의 핵심 로직.
  *
- * 흐름: 알림 종류별 기준 날짜 계산 → 해당 날짜의 일정 조회 → 구독자 조회
- *      → 발송 기록(PENDING) 생성 → 발송 → SENT / FAILED 갱신
+ * 1) 시험 일정 알림: 알림 종류별 기준 날짜의 일정 → 구독자에게 발송
+ * 2) 스펙 만료 알림: 만료일이 기준 날짜인 스펙 → 보유자에게 발송
+ *
+ * 공통 흐름: 발송 기록(PENDING) 생성 → 발송 → SENT / FAILED 갱신
  *
  * 이 클래스에는 @Transactional을 걸지 않음.
  * 메일 발송처럼 느린 외부 호출 동안 DB 트랜잭션(커넥션)을 붙잡고 있지 않기 위함.
@@ -47,6 +52,7 @@ public class NotificationJob {
 
     private final ExamScheduleRepository scheduleRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private final MemberSpecRepository specRepository;
     private final NotificationSettingRepository settingRepository;
     private final NotificationLogRepository logRepository;
     private final MemberRepository memberRepository;
@@ -60,40 +66,63 @@ public class NotificationJob {
      */
     public NotificationRunResult run(LocalDate today) {
         Counter counter = new Counter();
+        sendScheduleNotifications(today, counter);
+        sendSpecExpireNotifications(today, counter);
 
+        NotificationRunResult result = counter.toResult();
+        log.info("[알림 배치] 기준일={} 결과={}", today, result);
+        return result;
+    }
+
+    private void sendScheduleNotifications(LocalDate today, Counter counter) {
         for (NotificationType type : NotificationType.scheduleTypes()) {
-            LocalDate targetDate = type.targetDate(today);
-
-            for (ExamSchedule schedule : findSchedules(type, targetDate)) {
+            for (ExamSchedule schedule : findSchedules(type, type.targetDate(today))) {
                 List<Subscription> subscriptions =
                         subscriptionRepository.findAllWithMemberByExamId(schedule.getExam().getId());
                 if (subscriptions.isEmpty()) {
                     continue;
                 }
 
-                Map<Long, NotificationSetting> settings = loadSettings(subscriptions);
+                List<Member> members = subscriptions.stream().map(Subscription::getMember).toList();
+                Map<Long, NotificationSetting> settings = loadSettings(members);
                 NotificationMessage message = messageFactory.forSchedule(type, schedule);
 
-                for (Subscription subscription : subscriptions) {
-                    Member member = subscription.getMember();
-                    if (!isEmailEnabled(settings.get(member.getId()))) {
-                        counter.skipped++;
-                        continue;
-                    }
-
-                    Optional<Long> logId = createLogIfAbsent(member.getId(), type, schedule.getId());
-                    if (logId.isEmpty()) {
-                        counter.skipped++;   // 이미 보낸 알림
-                        continue;
-                    }
-                    deliver(logId.get(), member.getEmail(), message, counter);
+                for (Member member : members) {
+                    notifyOnce(member, settings.get(member.getId()), type, schedule.getId(), message, counter);
                 }
             }
         }
+    }
 
-        NotificationRunResult result = counter.toResult();
-        log.info("[알림 배치] 기준일={} 결과={}", today, result);
-        return result;
+    private void sendSpecExpireNotifications(LocalDate today, Counter counter) {
+        for (NotificationType type : NotificationType.specTypes()) {
+            List<MemberSpec> specs = specRepository.findWithMemberAndExamByExpireDate(type.targetDate(today));
+            if (specs.isEmpty()) {
+                continue;
+            }
+
+            Map<Long, NotificationSetting> settings = loadSettings(specs.stream().map(MemberSpec::getMember).toList());
+            for (MemberSpec spec : specs) {
+                Member member = spec.getMember();
+                NotificationMessage message = messageFactory.forSpec(type, spec);
+                notifyOnce(member, settings.get(member.getId()), type, spec.getId(), message, counter);
+            }
+        }
+    }
+
+    /** 알림 설정 확인 → 중복 확인 → 발송 */
+    private void notifyOnce(Member member, NotificationSetting setting, NotificationType type,
+                            Long targetId, NotificationMessage message, Counter counter) {
+        if (!isEmailEnabled(setting)) {
+            counter.skipped++;
+            return;
+        }
+        Optional<Long> logId = createLogIfAbsent(member.getId(), type, targetId);
+        if (logId.isEmpty()) {
+            counter.skipped++;   // 이미 보낸 알림
+            return;
+        }
+        deliver(logId.get(), member.getEmail(), message, counter);
     }
 
     /**
@@ -105,24 +134,32 @@ public class NotificationJob {
                 logRepository.findTop100ByStatusAndRetryCountLessThanOrderByIdAsc(NotificationStatus.FAILED, MAX_RETRY);
 
         for (NotificationLog failed : failedLogs) {
-            if (!failed.getType().isScheduleType()) {
-                continue;   // 스펙 만료 알림은 4단계에서 추가
-            }
-            Optional<ExamSchedule> schedule = scheduleRepository.findWithExamById(failed.getTargetId());
             Optional<Member> member = memberRepository.findById(failed.getMemberId());
-            if (schedule.isEmpty() || member.isEmpty()) {
-                logService.markFailed(failed.getId());   // 대상이 삭제됨 → 횟수만 올려 언젠가 재시도 대상에서 빠지게 함
+            Optional<NotificationMessage> message = rebuildMessage(failed);
+
+            if (member.isEmpty() || message.isEmpty()) {
+                // 대상이 삭제됨 → 횟수만 올려서 결국 재시도 대상에서 빠지게 함
+                logService.markFailed(failed.getId());
                 counter.failed++;
                 continue;
             }
-            NotificationMessage message = messageFactory.forSchedule(failed.getType(), schedule.get());
-            deliver(failed.getId(), member.get().getEmail(), message, counter);
+            deliver(failed.getId(), member.get().getEmail(), message.get(), counter);
         }
 
         if (!failedLogs.isEmpty()) {
             log.info("[알림 재발송] 결과={}", counter.toResult());
         }
         return counter.toResult();
+    }
+
+    private Optional<NotificationMessage> rebuildMessage(NotificationLog failed) {
+        NotificationType type = failed.getType();
+        if (type.isScheduleType()) {
+            return scheduleRepository.findWithExamById(failed.getTargetId())
+                    .map(schedule -> messageFactory.forSchedule(type, schedule));
+        }
+        return specRepository.findWithMemberAndExamById(failed.getTargetId())
+                .map(spec -> messageFactory.forSpec(type, spec));
     }
 
     private List<ExamSchedule> findSchedules(NotificationType type, LocalDate date) {
@@ -134,11 +171,9 @@ public class NotificationJob {
         };
     }
 
-    /** 구독자들의 알림 설정을 한 번에 조회 (회원마다 따로 조회하면 N+1) */
-    private Map<Long, NotificationSetting> loadSettings(List<Subscription> subscriptions) {
-        List<Long> memberIds = subscriptions.stream()
-                .map(subscription -> subscription.getMember().getId())
-                .toList();
+    /** 대상 회원들의 알림 설정을 한 번에 조회 (회원마다 따로 조회하면 N+1) */
+    private Map<Long, NotificationSetting> loadSettings(Collection<Member> members) {
+        List<Long> memberIds = members.stream().map(Member::getId).distinct().toList();
         return settingRepository.findAllById(memberIds).stream()
                 .collect(Collectors.toMap(NotificationSetting::getMemberId, Function.identity()));
     }

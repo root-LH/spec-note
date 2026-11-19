@@ -3,6 +3,7 @@ package io.github.root_LH.specnote.exam.repository;
 import io.github.root_LH.specnote.exam.domain.ExamCategory;
 import io.github.root_LH.specnote.exam.domain.ExamSchedule;
 import io.github.root_LH.specnote.exam.domain.ExamStage;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -24,6 +25,20 @@ public interface ExamScheduleRepository extends JpaRepository<ExamSchedule, Long
             """)
     List<ExamSchedule> findUpcomingByExamId(@Param("examId") Long examId,
                                             @Param("today") LocalDate today);
+
+    /**
+     * 대시보드용: 내가 구독한 시험들의 아직 끝나지 않은 일정 (개수는 pageable로 제한)
+     */
+    @Query("""
+            select s from ExamSchedule s
+            join fetch s.exam e
+            where e.id in (select sub.exam.id from Subscription sub where sub.member.id = :memberId)
+              and coalesce(s.resultDate, s.examDate, s.regEnd) >= :today
+            order by coalesce(s.regStart, s.examDate) asc
+            """)
+    List<ExamSchedule> findUpcomingForSubscriber(@Param("memberId") Long memberId,
+                                                 @Param("today") LocalDate today,
+                                                 Pageable pageable);
 
     /**
      * 캘린더용: 접수 시작·마감·시험일·발표일 중 하나라도 기간 안에 있는 일정.

@@ -5,6 +5,7 @@ import io.github.root_LH.specnote.exam.domain.ExamSchedule;
 import io.github.root_LH.specnote.exam.domain.ExamStage;
 import io.github.root_LH.specnote.notification.domain.NotificationType;
 import io.github.root_LH.specnote.notification.sender.NotificationMessage;
+import io.github.root_LH.specnote.spec.domain.MemberSpec;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -38,7 +39,30 @@ public class NotificationMessageFactory {
                 format(schedule.getRegEnd()),
                 format(schedule.getExamDate()),
                 format(schedule.getResultDate()),
-                exam.getOfficialUrl() != null ? exam.getOfficialUrl() : "-");
+                orDash(exam.getOfficialUrl()));
+
+        return new NotificationMessage(title, body);
+    }
+
+    public NotificationMessage forSpec(NotificationType type, MemberSpec spec) {
+        String name = spec.displayName();
+        String title = "[SpecNote] %s - %s".formatted(name, type.getDescription());
+        String body = """
+                보유 중인 스펙의 유효기간이 곧 만료됩니다.
+
+                · 스펙: %s
+                · 점수/등급: %s
+                · 취득일: %s
+                · 만료일: %s
+
+                재응시가 필요하다면 시험 일정을 확인해보세요.
+                %s
+                """.formatted(
+                name,
+                orDash(spec.getScore()),
+                format(spec.getAcquiredDate()),
+                format(spec.getExpireDate()),
+                spec.getExam() != null ? orDash(spec.getExam().getOfficialUrl()) : "");
 
         return new NotificationMessage(title, body);
     }
@@ -53,5 +77,9 @@ public class NotificationMessageFactory {
 
     private String format(LocalDate date) {
         return date != null ? date.format(DATE_FORMAT) : "미정";
+    }
+
+    private String orDash(String value) {
+        return value != null ? value : "-";
     }
 }

@@ -31,7 +31,12 @@ public enum ErrorCode {
     SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "E002", "시험 일정을 찾을 수 없습니다."),
     INVALID_SCHEDULE_DATES(HttpStatus.BAD_REQUEST, "E003", "일정 순서가 올바르지 않습니다. (접수 시작 ≤ 접수 마감 ≤ 시험일 ≤ 발표일)"),
     DUPLICATE_EXAM_CODE(HttpStatus.CONFLICT, "E004", "이미 등록된 시험 코드입니다."),
-    DUPLICATE_SCHEDULE(HttpStatus.CONFLICT, "E005", "같은 회차·단계의 일정이 이미 있습니다.");
+    DUPLICATE_SCHEDULE(HttpStatus.CONFLICT, "E005", "같은 회차·단계의 일정이 이미 있습니다."),
+
+    // 내 스펙
+    SPEC_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "스펙을 찾을 수 없습니다."),
+    SPEC_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "P002", "시험(examId) 또는 직접 입력한 이름(customName) 중 하나는 필요합니다."),
+    INVALID_SPEC_DATES(HttpStatus.BAD_REQUEST, "P003", "만료일은 취득일 이후여야 합니다.");
 
     private final HttpStatus status;
     private final String code;
