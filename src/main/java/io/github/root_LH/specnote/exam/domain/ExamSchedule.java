@@ -19,6 +19,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * 시험 회차별 일정 (접수 기간, 시험일, 발표일)
@@ -87,6 +88,18 @@ public class ExamSchedule {
         this.regEnd = regEnd;
         this.examDate = examDate;
         this.resultDate = resultDate;
+    }
+
+    /** 동기화할 때 바뀐 게 없으면 UPDATE를 하지 않기 위한 비교 */
+    public boolean hasSameDates(LocalDate regStart, LocalDate regEnd, LocalDate examDate, LocalDate resultDate) {
+        return Objects.equals(this.regStart, regStart)
+                && Objects.equals(this.regEnd, regEnd)
+                && Objects.equals(this.examDate, examDate)
+                && Objects.equals(this.resultDate, resultDate);
+    }
+
+    public void markSynced(LocalDateTime syncedAt) {
+        this.syncedAt = syncedAt;
     }
 
     /**

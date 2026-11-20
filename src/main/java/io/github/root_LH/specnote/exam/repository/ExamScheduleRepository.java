@@ -60,6 +60,9 @@ public interface ExamScheduleRepository extends JpaRepository<ExamSchedule, Long
 
     boolean existsByExamIdAndRoundNameAndStage(Long examId, String roundName, ExamStage stage);
 
+    /** 동기화용: 같은 회차·단계 일정 찾기 (UNIQUE 제약과 같은 기준) */
+    Optional<ExamSchedule> findByExamIdAndRoundNameAndStage(Long examId, String roundName, ExamStage stage);
+
     // ===== 알림 배치용: 특정 날짜에 해당하는 일정 (시험 정보까지 한 번에) =====
 
     @Query("select s from ExamSchedule s join fetch s.exam where s.regStart = :date")

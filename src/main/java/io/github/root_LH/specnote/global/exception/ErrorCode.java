@@ -36,7 +36,11 @@ public enum ErrorCode {
     // 내 스펙
     SPEC_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "스펙을 찾을 수 없습니다."),
     SPEC_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "P002", "시험(examId) 또는 직접 입력한 이름(customName) 중 하나는 필요합니다."),
-    INVALID_SPEC_DATES(HttpStatus.BAD_REQUEST, "P003", "만료일은 취득일 이후여야 합니다.");
+    INVALID_SPEC_DATES(HttpStatus.BAD_REQUEST, "P003", "만료일은 취득일 이후여야 합니다."),
+
+    // 외부 API
+    EXTERNAL_API_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "X001", "외부 API 인증키가 설정되지 않았습니다."),
+    EXTERNAL_API_ERROR(HttpStatus.BAD_GATEWAY, "X002", "외부 API 호출에 실패했습니다. 잠시 후 다시 시도해주세요.");
 
     private final HttpStatus status;
     private final String code;

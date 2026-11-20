@@ -27,6 +27,9 @@ import java.time.LocalDateTime;
 @EntityListeners(AuditingEntityListener.class)
 public class Exam {
 
+    private static final String QNET_ORGANIZER = "한국산업인력공단";
+    private static final String QNET_URL = "https://www.q-net.or.kr";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "exam_id")
@@ -75,6 +78,11 @@ public class Exam {
     public static Exam createManual(String examCode, String name, ExamCategory category, String organizer,
                                     Integer validityMonths, String officialUrl) {
         return new Exam(examCode, name, category, organizer, validityMonths, officialUrl, ExamSource.MANUAL);
+    }
+
+    /** Q-Net 종목 목록에서 자동 등록하는 국가기술자격 (유효기간 없음) */
+    public static Exam createFromQnet(String jmCd, String name) {
+        return new Exam(jmCd, name, ExamCategory.NATIONAL, QNET_ORGANIZER, null, QNET_URL, ExamSource.API);
     }
 
     /** examCode와 source는 동기화 기준이라 수정 대상에서 제외 */

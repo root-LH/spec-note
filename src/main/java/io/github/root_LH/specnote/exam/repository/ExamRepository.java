@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface ExamRepository extends JpaRepository<Exam, Long> {
 
     /**
@@ -23,4 +25,7 @@ public interface ExamRepository extends JpaRepository<Exam, Long> {
                       Pageable pageable);
 
     boolean existsByExamCode(String examCode);
+
+    /** 공공데이터 동기화 대상 (외부 코드가 등록된 시험) */
+    List<Exam> findAllByExamCodeIsNotNull();
 }
