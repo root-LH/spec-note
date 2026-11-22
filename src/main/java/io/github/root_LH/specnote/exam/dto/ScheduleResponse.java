@@ -21,7 +21,8 @@ public record ScheduleResponse(
         LocalDate examDate,
         LocalDate resultDate,
         RegistrationStatus registrationStatus,
-        String registrationStatusName
+        String registrationStatusName,
+        boolean synced          // 공공데이터로 동기화된 일정이면 true (다음 동기화 때 날짜가 갱신될 수 있음)
 ) {
 
     /**
@@ -43,6 +44,7 @@ public record ScheduleResponse(
                 schedule.getExamDate(),
                 schedule.getResultDate(),
                 status,
-                status.getDescription());
+                status.getDescription(),
+                schedule.getSyncedAt() != null);
     }
 }

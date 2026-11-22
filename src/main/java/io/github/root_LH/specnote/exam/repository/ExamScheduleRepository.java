@@ -27,6 +27,17 @@ public interface ExamScheduleRepository extends JpaRepository<ExamSchedule, Long
                                             @Param("today") LocalDate today);
 
     /**
+     * 관리 화면용: 시험의 전체 일정 (지난 회차 포함, 최신순)
+     */
+    @Query("""
+            select s from ExamSchedule s
+            join fetch s.exam
+            where s.exam.id = :examId
+            order by coalesce(s.examDate, s.regStart) desc, s.stage asc
+            """)
+    List<ExamSchedule> findAllWithExamByExamId(@Param("examId") Long examId);
+
+    /**
      * 대시보드용: 내가 구독한 시험들의 아직 끝나지 않은 일정 (개수는 pageable로 제한)
      */
     @Query("""

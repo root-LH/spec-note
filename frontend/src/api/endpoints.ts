@@ -3,13 +3,18 @@ import type {
   Dashboard,
   ExamCategory,
   ExamDetail,
+  ExamRequest,
   ExamSummary,
+  ExamSyncResult,
   IsoDate,
   Member,
   NotificationLog,
+  NotificationRunResult,
   NotificationSetting,
   PageResponse,
   Schedule,
+  ScheduleDates,
+  ScheduleRequest,
   Spec,
   SpecRequest,
   Subscription,
@@ -56,4 +61,24 @@ export const notificationApi = {
   updateSetting: (body: { emailEnabled: boolean }) =>
     api.put<NotificationSetting>('/me/notification-settings', body).then((r) => r.data),
   logs: () => api.get<NotificationLog[]>('/me/notifications').then((r) => r.data),
+}
+
+/** 관리자 전용 (서버에서 ADMIN 권한을 한 번 더 검사함) */
+export const adminApi = {
+  createExam: (body: ExamRequest) => api.post<{ id: number }>('/admin/exams', body).then((r) => r.data),
+  updateExam: (examId: number, body: Omit<ExamRequest, 'examCode'>) => api.put<void>(`/admin/exams/${examId}`, body),
+
+  schedules: (examId: number) => api.get<Schedule[]>(`/admin/exams/${examId}/schedules`).then((r) => r.data),
+  addSchedule: (examId: number, body: ScheduleRequest) =>
+    api.post<{ id: number }>(`/admin/exams/${examId}/schedules`, body).then((r) => r.data),
+  updateSchedule: (scheduleId: number, body: ScheduleDates) =>
+    api.put<Schedule>(`/admin/schedules/${scheduleId}`, body).then((r) => r.data),
+  deleteSchedule: (scheduleId: number) => api.delete<void>(`/admin/schedules/${scheduleId}`),
+
+  /** 종목 100여 개를 조회해서 1~2분 걸릴 수 있음 */
+  syncExams: () => api.post<ExamSyncResult>('/admin/exams/sync').then((r) => r.data),
+  runNotifications: (date?: IsoDate) =>
+    api
+      .post<NotificationRunResult>('/admin/notifications/run', null, { params: date ? { date } : {} })
+      .then((r) => r.data),
 }

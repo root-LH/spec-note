@@ -2,6 +2,7 @@ package io.github.root_LH.specnote.exam.dto;
 
 import io.github.root_LH.specnote.exam.domain.Exam;
 import io.github.root_LH.specnote.exam.domain.ExamCategory;
+import io.github.root_LH.specnote.exam.domain.ExamSource;
 
 import java.util.List;
 
@@ -17,6 +18,7 @@ public record ExamDetailResponse(
         String organizer,
         Integer validityMonths,
         String officialUrl,
+        ExamSource source,
         List<ScheduleResponse> upcomingSchedules
 ) {
 
@@ -30,6 +32,7 @@ public record ExamDetailResponse(
                 exam.getOrganizer(),
                 exam.getValidityMonths(),
                 exam.getOfficialUrl(),
+                exam.getSource(),
                 upcomingSchedules);
     }
 }

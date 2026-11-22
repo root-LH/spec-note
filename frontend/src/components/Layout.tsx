@@ -47,6 +47,11 @@ export default function Layout() {
                 </NavLink>
               </>
             )}
+            {user?.role === 'ADMIN' && (
+              <NavLink to="/admin" className={navClass}>
+                관리자
+              </NavLink>
+            )}
           </nav>
 
           <div className="flex shrink-0 items-center gap-2">

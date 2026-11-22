@@ -3,6 +3,8 @@ package io.github.root_LH.specnote.exam.controller;
 import io.github.root_LH.specnote.exam.dto.ExamCreateRequest;
 import io.github.root_LH.specnote.exam.dto.ExamUpdateRequest;
 import io.github.root_LH.specnote.exam.dto.ScheduleCreateRequest;
+import io.github.root_LH.specnote.exam.dto.ScheduleResponse;
+import io.github.root_LH.specnote.exam.dto.ScheduleUpdateRequest;
 import io.github.root_LH.specnote.exam.service.ExamAdminService;
 import io.github.root_LH.specnote.global.common.IdResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -18,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * /api/admin/** 는 SecurityConfig에서 ADMIN 권한만 허용
@@ -44,11 +49,24 @@ public class ExamAdminController {
         examAdminService.updateExam(examId, request);
     }
 
+    @Operation(summary = "시험의 전체 회차 일정", description = "지난 회차 포함, 최신순")
+    @GetMapping("/exams/{examId}/schedules")
+    public List<ScheduleResponse> getSchedules(@PathVariable Long examId) {
+        return examAdminService.getSchedules(examId);
+    }
+
     @Operation(summary = "회차 일정 등록")
     @PostMapping("/exams/{examId}/schedules")
     @ResponseStatus(HttpStatus.CREATED)
     public IdResponse addSchedule(@PathVariable Long examId, @Valid @RequestBody ScheduleCreateRequest request) {
         return new IdResponse(examAdminService.addSchedule(examId, request));
+    }
+
+    @Operation(summary = "회차 일정 날짜 수정")
+    @PutMapping("/schedules/{scheduleId}")
+    public ScheduleResponse updateSchedule(@PathVariable Long scheduleId,
+                                           @Valid @RequestBody ScheduleUpdateRequest request) {
+        return examAdminService.updateSchedule(scheduleId, request);
     }
 
     @Operation(summary = "회차 일정 삭제")

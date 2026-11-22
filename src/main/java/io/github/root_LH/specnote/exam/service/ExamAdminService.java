@@ -5,6 +5,8 @@ import io.github.root_LH.specnote.exam.domain.ExamSchedule;
 import io.github.root_LH.specnote.exam.dto.ExamCreateRequest;
 import io.github.root_LH.specnote.exam.dto.ExamUpdateRequest;
 import io.github.root_LH.specnote.exam.dto.ScheduleCreateRequest;
+import io.github.root_LH.specnote.exam.dto.ScheduleResponse;
+import io.github.root_LH.specnote.exam.dto.ScheduleUpdateRequest;
 import io.github.root_LH.specnote.exam.repository.ExamRepository;
 import io.github.root_LH.specnote.exam.repository.ExamScheduleRepository;
 import io.github.root_LH.specnote.global.exception.BusinessException;
@@ -14,8 +16,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Clock;
+import java.time.LocalDate;
+import java.util.List;
+
 /**
- * 관리자용 시험·일정 등록 (공공데이터 API에 없는 어학·민간 시험)
+ * 관리자용 시험·일정 관리 (공공데이터 API에 없는 어학·민간 시험 등)
  */
 @Service
 @RequiredArgsConstructor
@@ -24,6 +30,7 @@ public class ExamAdminService {
 
     private final ExamRepository examRepository;
     private final ExamScheduleRepository scheduleRepository;
+    private final Clock clock;
 
     public Long createExam(ExamCreateRequest request) {
         String examCode = StringUtils.hasText(request.examCode()) ? request.examCode().trim() : null;
@@ -52,6 +59,16 @@ public class ExamAdminService {
                 request.officialUrl());
     }
 
+    /** 관리 화면용: 지난 회차까지 전부 (최신순) */
+    @Transactional(readOnly = true)
+    public List<ScheduleResponse> getSchedules(Long examId) {
+        findExam(examId);
+        LocalDate today = LocalDate.now(clock);
+        return scheduleRepository.findAllWithExamByExamId(examId).stream()
+                .map(schedule -> ScheduleResponse.of(schedule, today))
+                .toList();
+    }
+
     public Long addSchedule(Long examId, ScheduleCreateRequest request) {
         Exam exam = findExam(examId);
         if (scheduleRepository.existsByExamIdAndRoundNameAndStage(examId, request.roundName(), request.stage())) {
@@ -67,6 +84,14 @@ public class ExamAdminService {
                 request.examDate(),
                 request.resultDate());
         return scheduleRepository.save(schedule).getId();
+    }
+
+    public ScheduleResponse updateSchedule(Long scheduleId, ScheduleUpdateRequest request) {
+        ExamSchedule schedule = scheduleRepository.findWithExamById(scheduleId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SCHEDULE_NOT_FOUND));
+        // 날짜 순서 검증은 엔티티가 담당
+        schedule.changeDates(request.regStart(), request.regEnd(), request.examDate(), request.resultDate());
+        return ScheduleResponse.of(schedule, LocalDate.now(clock));
     }
 
     public void deleteSchedule(Long scheduleId) {

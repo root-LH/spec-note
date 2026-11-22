@@ -3,6 +3,7 @@
 export type Role = 'USER' | 'ADMIN'
 export type ExamCategory = 'NATIONAL' | 'LANGUAGE' | 'PRIVATE'
 export type ExamStage = 'WRITTEN' | 'PRACTICAL' | 'SINGLE'
+export type ExamSource = 'API' | 'MANUAL'
 export type RegistrationStatus = 'BEFORE' | 'OPEN' | 'CLOSED' | 'UNKNOWN'
 export type SpecStatus = 'PERMANENT' | 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED'
 
@@ -46,6 +47,7 @@ export interface ExamSummary {
   categoryName: string
   organizer: string | null
   validityMonths: number | null
+  source: ExamSource
 }
 
 export interface Schedule {
@@ -62,6 +64,8 @@ export interface Schedule {
   resultDate: IsoDate | null
   registrationStatus: RegistrationStatus
   registrationStatusName: string
+  /** 공공데이터로 동기화된 일정 (다음 동기화 때 날짜가 갱신될 수 있음) */
+  synced: boolean
 }
 
 export interface ExamDetail extends ExamSummary {
@@ -129,4 +133,45 @@ export interface NotificationLog {
   status: 'PENDING' | 'SENT' | 'FAILED'
   sentAt: string | null
   createdAt: string
+}
+
+// ===== 관리자 =====
+
+export interface ExamRequest {
+  /** 등록할 때만 사용 (수정 불가) */
+  examCode?: string | null
+  name: string
+  category: ExamCategory
+  organizer: string | null
+  validityMonths: number | null
+  officialUrl: string | null
+}
+
+export interface ScheduleDates {
+  regStart: IsoDate | null
+  regEnd: IsoDate | null
+  examDate: IsoDate
+  resultDate: IsoDate | null
+}
+
+export interface ScheduleRequest extends ScheduleDates {
+  roundName: string
+  stage: ExamStage
+}
+
+export interface ExamSyncResult {
+  examsAdded: number
+  catalogFailed: boolean
+  examCount: number
+  created: number
+  updated: number
+  unchanged: number
+  invalid: number
+  failedExams: number
+}
+
+export interface NotificationRunResult {
+  sent: number
+  failed: number
+  skipped: number
 }

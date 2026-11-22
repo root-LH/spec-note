@@ -2,6 +2,7 @@ package io.github.root_LH.specnote.exam.dto;
 
 import io.github.root_LH.specnote.exam.domain.Exam;
 import io.github.root_LH.specnote.exam.domain.ExamCategory;
+import io.github.root_LH.specnote.exam.domain.ExamSource;
 
 /**
  * 시험 목록용 응답
@@ -12,7 +13,8 @@ public record ExamSummaryResponse(
         ExamCategory category,
         String categoryName,
         String organizer,
-        Integer validityMonths
+        Integer validityMonths,
+        ExamSource source       // API: 공공데이터 자동 동기화 / MANUAL: 관리자 등록
 ) {
 
     public static ExamSummaryResponse from(Exam exam) {
@@ -22,6 +24,7 @@ public record ExamSummaryResponse(
                 exam.getCategory(),
                 exam.getCategory().getDescription(),
                 exam.getOrganizer(),
-                exam.getValidityMonths());
+                exam.getValidityMonths(),
+                exam.getSource());
     }
 }
