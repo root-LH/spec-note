@@ -6,6 +6,7 @@ import { useFetch } from '../hooks/useFetch'
 import { CATEGORY_LABEL, todayIso, toIsoDate } from '../utils/format'
 import Loading from '../components/Loading'
 import ErrorMessage from '../components/ErrorMessage'
+import { Button, ChevronIcon, ChipTabs } from '../components/ui'
 
 type EventKind = 'REG_START' | 'REG_END' | 'EXAM' | 'RESULT'
 
@@ -15,15 +16,21 @@ interface CalendarEvent {
   schedule: Schedule
 }
 
-const EVENT_STYLE: Record<EventKind, { label: string; className: string }> = {
-  REG_START: { label: '접수시작', className: 'bg-blue-100 text-blue-700' },
-  REG_END: { label: '접수마감', className: 'bg-amber-100 text-amber-700' },
-  EXAM: { label: '시험', className: 'bg-red-100 text-red-700' },
-  RESULT: { label: '발표', className: 'bg-green-100 text-green-700' },
+const EVENT_STYLE: Record<EventKind, { label: string; chip: string; dot: string }> = {
+  REG_START: { label: '접수시작', chip: 'bg-brand-50 text-brand-600', dot: 'bg-brand-500' },
+  REG_END: { label: '접수마감', chip: 'bg-warn-50 text-warn-600', dot: 'bg-warn-600' },
+  EXAM: { label: '시험', chip: 'bg-danger-50 text-danger-500', dot: 'bg-danger-500' },
+  RESULT: { label: '발표', chip: 'bg-success-50 text-success-600', dot: 'bg-success-600' },
 }
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
-const CATEGORIES: (ExamCategory | null)[] = [null, 'NATIONAL', 'LANGUAGE', 'PRIVATE']
+
+const CATEGORY_OPTIONS: { value: ExamCategory | null; label: string }[] = [
+  { value: null, label: '전체' },
+  { value: 'NATIONAL', label: CATEGORY_LABEL.NATIONAL },
+  { value: 'LANGUAGE', label: CATEGORY_LABEL.LANGUAGE },
+  { value: 'PRIVATE', label: CATEGORY_LABEL.PRIVATE },
+]
 
 /** 달력에 그릴 6주(42일) 날짜 목록. 첫 칸은 그 달 1일이 속한 주의 일요일 */
 function buildMonthGrid(year: number, month: number): Date[] {
@@ -88,62 +95,56 @@ export default function CalendarPage() {
   }
 
   const today = todayIso()
+  const iconButton =
+    'inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-ink-600 transition hover:bg-ink-100'
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex items-center gap-2">
-          <button onClick={() => moveMonth(-1)} className="px-2 py-1 rounded-md border border-gray-300 bg-white hover:bg-gray-50">
-            ‹
+    <div className="space-y-4">
+      <div className="mb-2 flex items-center gap-2">
+        <h1 className="text-[26px] font-bold tracking-tight">
+          {year}년 {month + 1}월
+        </h1>
+        <div className="ml-auto flex items-center gap-1.5">
+          <button type="button" onClick={() => moveMonth(-1)} className={iconButton} aria-label="이전 달">
+            <ChevronIcon direction="left" className="h-5 w-5" />
           </button>
-          <h1 className="text-2xl font-bold w-36 text-center">
-            {year}년 {month + 1}월
-          </h1>
-          <button onClick={() => moveMonth(1)} className="px-2 py-1 rounded-md border border-gray-300 bg-white hover:bg-gray-50">
-            ›
-          </button>
-          <button onClick={goToday} className="ml-1 px-3 py-1 rounded-md border border-gray-300 bg-white text-sm hover:bg-gray-50">
+          <Button variant="ghost" size="sm" onClick={goToday} className="bg-white">
             오늘
+          </Button>
+          <button type="button" onClick={() => moveMonth(1)} className={iconButton} aria-label="다음 달">
+            <ChevronIcon direction="right" className="h-5 w-5" />
           </button>
-        </div>
-
-        <div className="sm:ml-auto flex flex-wrap items-center gap-2">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c ?? 'ALL'}
-              onClick={() => setCategory(c)}
-              className={`px-3 py-1 rounded-full text-sm ${
-                category === c ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              {c ? CATEGORY_LABEL[c] : '전체'}
-            </button>
-          ))}
-          <label className="ml-2 flex items-center gap-1.5 text-sm text-gray-600">
-            <input type="checkbox" checked={onlySubscribed} onChange={(e) => setOnlySubscribed(e.target.checked)} />
-            구독한 시험만
-          </label>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-3 text-xs">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <ChipTabs options={CATEGORY_OPTIONS} value={category} onChange={setCategory} />
+        <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-ink-600 sm:ml-auto">
+          <input
+            type="checkbox"
+            checked={onlySubscribed}
+            onChange={(e) => setOnlySubscribed(e.target.checked)}
+            className="h-4 w-4 accent-brand-500"
+          />
+          구독한 시험만
+        </label>
+      </div>
+
+      <div className="flex flex-wrap gap-4 text-xs font-medium text-ink-500">
         {Object.values(EVENT_STYLE).map((style) => (
-          <span key={style.label} className={`px-2 py-0.5 rounded ${style.className}`}>
+          <span key={style.label} className="flex items-center gap-1.5">
+            <span className={`h-2 w-2 rounded-full ${style.dot}`} />
             {style.label}
           </span>
         ))}
       </div>
 
-      {schedules.error && (
-        <div className="mt-4">
-          <ErrorMessage message={schedules.error} onRetry={schedules.reload} />
-        </div>
-      )}
+      {schedules.error && <ErrorMessage message={schedules.error} onRetry={schedules.reload} />}
 
-      <div className="mt-4 bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50 text-center text-xs font-medium">
+      <div className="overflow-hidden rounded-3xl bg-white">
+        <div className="grid grid-cols-7 border-b border-ink-50 text-center text-xs font-semibold">
           {WEEKDAYS.map((day, i) => (
-            <div key={day} className={`py-2 ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-gray-500'}`}>
+            <div key={day} className={`py-3 ${i === 0 ? 'text-danger-500' : i === 6 ? 'text-brand-500' : 'text-ink-400'}`}>
               {day}
             </div>
           ))}
@@ -153,30 +154,33 @@ export default function CalendarPage() {
           <Loading />
         ) : (
           <div className="grid grid-cols-7">
-            {grid.map((date) => {
+            {grid.map((date, index) => {
               const iso = toIsoDate(date)
               const inMonth = date.getMonth() === month
               const events = eventsByDate.get(iso) ?? []
+              const isLastColumn = index % 7 === 6
               return (
                 <div
                   key={iso}
-                  className={`min-h-24 border-b border-r border-gray-100 p-1 ${inMonth ? '' : 'bg-gray-50/60'}`}
+                  className={`min-h-24 border-b border-ink-50 p-1.5 sm:min-h-28 ${isLastColumn ? '' : 'border-r'} ${
+                    inMonth ? '' : 'bg-ink-50/50'
+                  }`}
                 >
                   <div
-                    className={`text-xs mb-1 w-6 h-6 flex items-center justify-center rounded-full ${
-                      iso === today ? 'bg-indigo-600 text-white font-bold' : inMonth ? 'text-gray-700' : 'text-gray-300'
+                    className={`mb-1 flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-semibold ${
+                      iso === today ? 'bg-brand-500 text-white' : inMonth ? 'text-ink-700' : 'text-ink-300'
                     }`}
                   >
                     {date.getDate()}
                   </div>
-                  <div className="space-y-0.5">
+                  <div className="space-y-1">
                     {events.map((event) => (
                       <Link
                         key={`${event.schedule.scheduleId}-${event.kind}`}
                         to={`/exams/${event.schedule.examId}`}
                         title={`${event.schedule.examName} ${event.schedule.roundName} ${EVENT_STYLE[event.kind].label}`}
-                        className={`block truncate rounded px-1 py-0.5 text-[11px] leading-tight hover:opacity-80 ${
-                          EVENT_STYLE[event.kind].className
+                        className={`block truncate rounded-md px-1.5 py-0.5 text-[11px] font-semibold leading-tight transition hover:opacity-75 ${
+                          EVENT_STYLE[event.kind].chip
                         }`}
                       >
                         {event.schedule.examName} {EVENT_STYLE[event.kind].label}

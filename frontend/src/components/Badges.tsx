@@ -1,19 +1,19 @@
 import type { ReactNode } from 'react'
 import type { RegistrationStatus, SpecStatus } from '../api/types'
 
-export function Badge({ className = 'bg-gray-100 text-gray-600', children }: { className?: string; children: ReactNode }) {
+export function Badge({ className = 'bg-ink-50 text-ink-500', children }: { className?: string; children: ReactNode }) {
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${className}`}>
+    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${className}`}>
       {children}
     </span>
   )
 }
 
 const REGISTRATION_STYLE: Record<RegistrationStatus, string> = {
-  OPEN: 'bg-green-100 text-green-700',
-  BEFORE: 'bg-blue-100 text-blue-700',
-  CLOSED: 'bg-gray-100 text-gray-500',
-  UNKNOWN: 'bg-gray-100 text-gray-500',
+  OPEN: 'bg-success-50 text-success-600',
+  BEFORE: 'bg-brand-50 text-brand-600',
+  CLOSED: 'bg-ink-50 text-ink-400',
+  UNKNOWN: 'bg-ink-50 text-ink-400',
 }
 
 export function RegistrationBadge({ status, label }: { status: RegistrationStatus; label: string }) {
@@ -21,12 +21,19 @@ export function RegistrationBadge({ status, label }: { status: RegistrationStatu
 }
 
 const SPEC_STYLE: Record<SpecStatus, string> = {
-  ACTIVE: 'bg-green-100 text-green-700',
-  EXPIRING_SOON: 'bg-amber-100 text-amber-700',
-  EXPIRED: 'bg-red-100 text-red-700',
-  PERMANENT: 'bg-indigo-100 text-indigo-700',
+  ACTIVE: 'bg-success-50 text-success-600',
+  EXPIRING_SOON: 'bg-warn-50 text-warn-600',
+  EXPIRED: 'bg-danger-50 text-danger-500',
+  PERMANENT: 'bg-brand-50 text-brand-600',
 }
 
 export function SpecStatusBadge({ status, label }: { status: SpecStatus; label: string }) {
   return <Badge className={SPEC_STYLE[status]}>{label}</Badge>
+}
+
+/** 남은 일수에 따라 D-day 글자색 (7일 이내 빨강, 30일 이내 주황) */
+export function dDayTone(days: number): string {
+  if (days < 0 || days <= 7) return 'text-danger-500'
+  if (days <= 30) return 'text-warn-600'
+  return 'text-brand-500'
 }

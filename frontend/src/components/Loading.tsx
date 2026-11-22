@@ -1,3 +1,7 @@
 export default function Loading() {
-  return <p className="py-12 text-center text-sm text-gray-400">불러오는 중…</p>
+  return (
+    <div className="flex justify-center py-16" role="status" aria-label="불러오는 중">
+      <span className="h-7 w-7 animate-spin rounded-full border-[3px] border-ink-100 border-t-brand-500" />
+    </div>
+  )
 }

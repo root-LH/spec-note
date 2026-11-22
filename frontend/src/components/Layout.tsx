@@ -1,9 +1,10 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
+import { Button } from './ui'
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
-  `px-3 py-2 rounded-md text-sm font-medium ${
-    isActive ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+  `shrink-0 rounded-full px-3.5 py-2 text-[15px] font-semibold transition ${
+    isActive ? 'bg-ink-50 text-ink-900' : 'text-ink-400 hover:text-ink-900'
   }`
 
 export default function Layout() {
@@ -16,17 +17,18 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-6">
-          <Link to="/" className="text-lg font-bold text-indigo-600">
+    <div className="flex min-h-screen flex-col">
+      {/* 스크롤해도 위에 붙어 있는 반투명 헤더 */}
+      <header className="sticky top-0 z-20 border-b border-ink-100 bg-white/85 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-5xl items-center gap-4 px-5">
+          <Link to="/" className="shrink-0 text-xl font-extrabold tracking-tight text-brand-500">
             SpecNote
           </Link>
 
-          <nav className="flex items-center gap-1">
+          <nav className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
             {user && (
               <NavLink to="/" end className={navClass}>
-                대시보드
+                홈
               </NavLink>
             )}
             <NavLink to="/exams" className={navClass}>
@@ -47,20 +49,23 @@ export default function Layout() {
             )}
           </nav>
 
-          <div className="ml-auto flex items-center gap-3 text-sm">
+          <div className="flex shrink-0 items-center gap-2">
             {user ? (
               <>
-                <span className="text-gray-600">{user.nickname}님</span>
-                <button onClick={handleLogout} className="text-gray-500 hover:text-gray-900">
+                <span className="hidden text-sm text-ink-500 sm:inline">{user.nickname}님</span>
+                <Button variant="ghost" size="sm" onClick={handleLogout}>
                   로그아웃
-                </button>
+                </Button>
               </>
             ) : (
               <>
-                <Link to="/login" className="text-gray-600 hover:text-gray-900">
+                <Link to="/login" className="px-2 text-sm font-semibold text-ink-600 hover:text-ink-900">
                   로그인
                 </Link>
-                <Link to="/signup" className="px-3 py-1.5 rounded-md bg-indigo-600 text-white hover:bg-indigo-700">
+                <Link
+                  to="/signup"
+                  className="inline-flex h-9 items-center rounded-xl bg-brand-500 px-3.5 text-sm font-semibold text-white hover:bg-brand-600"
+                >
                   회원가입
                 </Link>
               </>
@@ -69,13 +74,11 @@ export default function Layout() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-8">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-8 sm:py-10">
         <Outlet />
       </main>
 
-      <footer className="py-6 text-center text-xs text-gray-400">
-        SpecNote · 자격증·어학 스펙 관리와 시험 접수 알림
-      </footer>
+      <footer className="py-8 text-center text-xs text-ink-400">SpecNote · 자격증·어학 스펙 관리와 시험 접수 알림</footer>
     </div>
   )
 }

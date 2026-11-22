@@ -1,6 +1,44 @@
+/* Pretendard: 국내 서비스에서 많이 쓰는 한글 웹폰트 (필요한 글자만 내려받는 버전) */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
 @import "tailwindcss";
 
+/*
+ * 디자인 토큰: 색·폰트를 한 곳에서 관리
+ * → bg-brand-500, text-ink-600 처럼 Tailwind 클래스로 바로 사용
+ */
+@theme {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
+    "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+
+  /* 포인트 컬러 (블루) */
+  --color-brand-50: #e8f3ff;
+  --color-brand-100: #c9e2ff;
+  --color-brand-500: #3182f6;
+  --color-brand-600: #1b64da;
+
+  /* 글자·배경 회색 단계 (숫자가 클수록 진함) */
+  --color-ink-50: #f2f4f6;
+  --color-ink-100: #e5e8eb;
+  --color-ink-200: #d1d6db;
+  --color-ink-300: #b0b8c1;
+  --color-ink-400: #8b95a1;
+  --color-ink-500: #6b7684;
+  --color-ink-600: #4e5968;
+  --color-ink-700: #333d4b;
+  --color-ink-900: #191f28;
+
+  /* 상태 색 */
+  --color-success-50: #e8f8f1;
+  --color-success-600: #03a066;
+  --color-warn-50: #fff3e0;
+  --color-warn-600: #f57800;
+  --color-danger-50: #ffeeee;
+  --color-danger-100: #ffd6d9;
+  --color-danger-500: #f04452;
+  --color-danger-600: #e42939;
+}
+
 body {
-  @apply bg-gray-50 text-gray-900;
-  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  @apply bg-ink-50 font-sans text-ink-900 antialiased;
+  word-break: keep-all; /* 한글이 단어 중간에서 줄바꿈되지 않게 */
 }

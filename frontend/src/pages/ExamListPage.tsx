@@ -6,9 +6,14 @@ import { useFetch } from '../hooks/useFetch'
 import { CATEGORY_LABEL } from '../utils/format'
 import Loading from '../components/Loading'
 import ErrorMessage from '../components/ErrorMessage'
-import { Badge } from '../components/Badges'
+import { Button, ChipTabs, EmptyState, PageHeader, SearchIcon } from '../components/ui'
 
-const CATEGORIES: (ExamCategory | null)[] = [null, 'NATIONAL', 'LANGUAGE', 'PRIVATE']
+const CATEGORY_OPTIONS: { value: ExamCategory | null; label: string }[] = [
+  { value: null, label: '전체' },
+  { value: 'NATIONAL', label: CATEGORY_LABEL.NATIONAL },
+  { value: 'LANGUAGE', label: CATEGORY_LABEL.LANGUAGE },
+  { value: 'PRIVATE', label: CATEGORY_LABEL.PRIVATE },
+]
 const PAGE_SIZE = 12
 
 export default function ExamListPage() {
@@ -43,32 +48,19 @@ export default function ExamListPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">시험 찾기</h1>
-      <p className="mt-1 text-sm text-gray-500">관심 있는 시험을 구독하면 접수 일정을 알려드려요.</p>
+      <PageHeader title="시험 찾기" description="관심 있는 시험을 구독하면 접수 일정을 알려드려요" />
 
-      <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex gap-1">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c ?? 'ALL'}
-              onClick={() => updateParams({ category: c })}
-              className={`px-3 py-1.5 rounded-full text-sm ${
-                category === c ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              {c ? CATEGORY_LABEL[c] : '전체'}
-            </button>
-          ))}
-        </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <ChipTabs options={CATEGORY_OPTIONS} value={category} onChange={(c) => updateParams({ category: c })} />
 
-        <form onSubmit={handleSearch} className="sm:ml-auto flex gap-2">
+        <form onSubmit={handleSearch} className="relative sm:ml-auto sm:w-64">
+          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-ink-400" />
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="시험 이름 검색"
-            className="w-full sm:w-56 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+            className="h-10 w-full rounded-xl bg-white pl-10 pr-4 text-[15px] outline-none ring-brand-500 placeholder:text-ink-400 focus:ring-2"
           />
-          <button className="px-3 py-1.5 rounded-md bg-gray-800 text-white text-sm hover:bg-gray-900">검색</button>
         </form>
       </div>
 
@@ -77,48 +69,47 @@ export default function ExamListPage() {
         {error && <ErrorMessage message={error} onRetry={reload} />}
 
         {data && data.content.length === 0 && (
-          <p className="py-12 text-center text-sm text-gray-500">조건에 맞는 시험이 없어요.</p>
+          <div className="rounded-3xl bg-white">
+            <EmptyState title="조건에 맞는 시험이 없어요" description="다른 이름으로 검색해보세요" />
+          </div>
         )}
 
         {data && data.content.length > 0 && (
           <>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <p className="mb-3 text-sm text-ink-500">
+              총 <strong className="text-ink-900">{data.totalElements}</strong>개
+            </p>
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {data.content.map((exam) => (
                 <li key={exam.examId}>
                   <Link
                     to={`/exams/${exam.examId}`}
-                    className="block h-full bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-400 hover:shadow-sm transition"
+                    className="group flex h-full flex-col rounded-3xl bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)]"
                   >
-                    <Badge>{exam.categoryName}</Badge>
-                    <h2 className="mt-2 font-semibold">{exam.name}</h2>
-                    <p className="mt-1 text-sm text-gray-500">{exam.organizer ?? '시행기관 정보 없음'}</p>
-                    <p className="mt-2 text-xs text-gray-400">
-                      유효기간 {exam.validityMonths ? `${exam.validityMonths}개월` : '영구'}
-                    </p>
+                    <span className="text-[13px] font-semibold text-brand-500">{exam.categoryName}</span>
+                    <h2 className="mt-1 text-[17px] font-bold text-ink-900 group-hover:text-brand-600">{exam.name}</h2>
+                    <p className="mt-1 text-sm text-ink-500">{exam.organizer ?? '시행기관 정보 없음'}</p>
+                    <div className="mt-auto pt-4">
+                      <span className="rounded-md bg-ink-50 px-2 py-1 text-xs font-medium text-ink-500">
+                        유효기간 {exam.validityMonths ? `${exam.validityMonths}개월` : '영구'}
+                      </span>
+                    </div>
                   </Link>
                 </li>
               ))}
             </ul>
 
             {data.totalPages > 1 && (
-              <div className="mt-6 flex items-center justify-center gap-3 text-sm">
-                <button
-                  disabled={page === 0}
-                  onClick={() => updateParams({ page: page - 1 })}
-                  className="px-3 py-1.5 rounded-md border border-gray-300 bg-white disabled:opacity-40"
-                >
+              <div className="mt-8 flex items-center justify-center gap-3">
+                <Button variant="ghost" size="sm" disabled={page === 0} onClick={() => updateParams({ page: page - 1 })}>
                   이전
-                </button>
-                <span className="text-gray-500">
+                </Button>
+                <span className="text-sm font-semibold text-ink-500">
                   {page + 1} / {data.totalPages}
                 </span>
-                <button
-                  disabled={!data.hasNext}
-                  onClick={() => updateParams({ page: page + 1 })}
-                  className="px-3 py-1.5 rounded-md border border-gray-300 bg-white disabled:opacity-40"
-                >
+                <Button variant="ghost" size="sm" disabled={!data.hasNext} onClick={() => updateParams({ page: page + 1 })}>
                   다음
-                </button>
+                </Button>
               </div>
             )}
           </>

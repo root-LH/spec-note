@@ -7,11 +7,12 @@ import { formatDateTime } from '../utils/format'
 import Loading from '../components/Loading'
 import ErrorMessage from '../components/ErrorMessage'
 import { Badge } from '../components/Badges'
+import { Card, EmptyState, PageHeader, SectionHeader, Toggle } from '../components/ui'
 
 const STATUS_STYLE: Record<NotificationLog['status'], { label: string; className: string }> = {
-  SENT: { label: '발송 완료', className: 'bg-green-100 text-green-700' },
-  PENDING: { label: '대기', className: 'bg-gray-100 text-gray-600' },
-  FAILED: { label: '실패 (재시도 예정)', className: 'bg-red-100 text-red-700' },
+  SENT: { label: '발송 완료', className: 'bg-success-50 text-success-600' },
+  PENDING: { label: '대기', className: 'bg-ink-50 text-ink-500' },
+  FAILED: { label: '재시도 예정', className: 'bg-danger-50 text-danger-500' },
 }
 
 export default function NotificationsPage() {
@@ -25,11 +26,10 @@ export default function NotificationsPage() {
   const emailEnabled = emailOverride ?? setting.data?.emailEnabled ?? true
 
   const handleToggle = async () => {
-    const next = !emailEnabled
     setSaving(true)
     setSaveError(null)
     try {
-      const updated = await notificationApi.updateSetting({ emailEnabled: next })
+      const updated = await notificationApi.updateSetting({ emailEnabled: !emailEnabled })
       setEmailOverride(updated.emailEnabled)
     } catch (e) {
       setSaveError(getErrorMessage(e))
@@ -39,81 +39,75 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold">알림</h1>
+    <div className="space-y-4">
+      <PageHeader title="알림" description="시험 일정과 스펙 만료일을 놓치지 않도록 알려드려요" />
 
-      <section className="mt-6 bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="font-semibold">알림 설정</h2>
+      <Card>
+        <SectionHeader title="알림 설정" />
         {setting.loading && <Loading />}
         {setting.error && <ErrorMessage message={setting.error} onRetry={setting.reload} />}
 
         {setting.data && (
-          <div className="mt-4 space-y-4">
-            <div className="flex items-center">
+          <div className="divide-y divide-ink-50">
+            <div className="flex items-center gap-4 py-4 first:pt-0">
               <div>
-                <p className="font-medium">이메일 알림</p>
-                <p className="text-sm text-gray-500">접수 시작·마감, 시험 전날, 발표일, 스펙 만료 30일·7일 전</p>
+                <p className="text-[16px] font-semibold">이메일 알림</p>
+                <p className="mt-0.5 text-sm text-ink-400">접수 시작·마감, 시험 전날, 발표일, 스펙 만료 30일·7일 전</p>
               </div>
-              {/* 토글 스위치 */}
-              <button
-                role="switch"
-                aria-checked={emailEnabled}
-                onClick={handleToggle}
-                disabled={saving}
-                className={`ml-auto relative inline-flex h-6 w-11 items-center rounded-full transition disabled:opacity-50 ${
-                  emailEnabled ? 'bg-indigo-600' : 'bg-gray-300'
-                }`}
-              >
-                <span
-                  className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${
-                    emailEnabled ? 'translate-x-5' : 'translate-x-0.5'
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="flex items-center text-gray-400">
-              <div>
-                <p className="font-medium">텔레그램 알림</p>
-                <p className="text-sm">준비 중이에요</p>
+              <div className="ml-auto">
+                <Toggle checked={emailEnabled} onChange={handleToggle} disabled={saving} />
               </div>
             </div>
 
-            {saveError && <ErrorMessage message={saveError} />}
+            <div className="flex items-center gap-4 py-4 last:pb-0">
+              <div>
+                <p className="text-[16px] font-semibold text-ink-400">텔레그램 알림</p>
+                <p className="mt-0.5 text-sm text-ink-300">준비 중이에요</p>
+              </div>
+              <div className="ml-auto">
+                <Toggle checked={false} onChange={() => {}} disabled />
+              </div>
+            </div>
+
+            {saveError && (
+              <div className="pt-4">
+                <ErrorMessage message={saveError} />
+              </div>
+            )}
           </div>
         )}
-      </section>
+      </Card>
 
-      <section className="mt-6 bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex items-center">
-          <h2 className="font-semibold">받은 알림</h2>
-          <span className="ml-2 text-xs text-gray-400">최근 30건</span>
-          <button onClick={logs.reload} className="ml-auto text-sm text-gray-500 hover:text-gray-900">
-            새로고침
-          </button>
-        </div>
+      <Card>
+        <SectionHeader
+          title="받은 알림"
+          meta="최근 30건"
+          action={
+            <button type="button" onClick={logs.reload} className="text-sm font-semibold text-ink-400 hover:text-ink-700">
+              새로고침
+            </button>
+          }
+        />
 
         {logs.loading && <Loading />}
         {logs.error && <ErrorMessage message={logs.error} onRetry={logs.reload} />}
 
         {logs.data && logs.data.length === 0 && (
-          <p className="mt-4 text-sm text-gray-500">
-            아직 받은 알림이 없어요. 시험을 구독하거나 스펙을 등록하면 일정에 맞춰 알림이 와요.
-          </p>
+          <EmptyState title="아직 받은 알림이 없어요" description="시험을 구독하거나 스펙을 등록하면 일정에 맞춰 알림이 와요" />
         )}
 
         {logs.data && logs.data.length > 0 && (
-          <ul className="mt-2 divide-y divide-gray-100">
+          <ul className="space-y-2">
             {logs.data.map((log) => (
-              <li key={log.logId} className="py-3 flex items-center gap-3">
-                <span className="font-medium">{log.typeName}</span>
+              <li key={log.logId} className="flex items-center gap-3 rounded-2xl bg-ink-50 px-4 py-3.5">
+                <span className="font-semibold">{log.typeName}</span>
                 <Badge className={STATUS_STYLE[log.status].className}>{STATUS_STYLE[log.status].label}</Badge>
-                <span className="ml-auto text-sm text-gray-500">{formatDateTime(log.sentAt ?? log.createdAt)}</span>
+                <span className="ml-auto text-sm text-ink-400">{formatDateTime(log.sentAt ?? log.createdAt)}</span>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </Card>
     </div>
   )
 }

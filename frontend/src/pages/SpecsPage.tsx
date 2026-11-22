@@ -7,17 +7,11 @@ import { dDayLabel, formatDate } from '../utils/format'
 import Loading from '../components/Loading'
 import ErrorMessage from '../components/ErrorMessage'
 import SpecForm from '../components/SpecForm'
-import { SpecStatusBadge } from '../components/Badges'
+import { SpecStatusBadge, dDayTone } from '../components/Badges'
+import { Button, Card, EmptyState, PageHeader } from '../components/ui'
 
 /** 폼 상태: 닫힘 / 새로 추가 / 특정 스펙 수정 */
 type FormMode = { type: 'closed' } | { type: 'create' } | { type: 'edit'; spec: Spec }
-
-const D_DAY_COLOR: Record<Spec['status'], string> = {
-  ACTIVE: 'text-gray-500',
-  EXPIRING_SOON: 'text-amber-600',
-  EXPIRED: 'text-red-600',
-  PERMANENT: 'text-gray-400',
-}
 
 export default function SpecsPage() {
   const specs = useFetch(() => specApi.list(), [])
@@ -67,98 +61,89 @@ export default function SpecsPage() {
   }
 
   return (
-    <div>
-      <div className="flex items-center">
-        <div>
-          <h1 className="text-2xl font-bold">내 스펙</h1>
-          <p className="mt-1 text-sm text-gray-500">유효기간이 있는 스펙은 만료 30일·7일 전에 알려드려요.</p>
-        </div>
-        {mode.type === 'closed' && (
-          <button
-            onClick={() => openForm({ type: 'create' })}
-            className="ml-auto px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
-          >
-            + 스펙 추가
-          </button>
-        )}
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        title="내 스펙"
+        description="유효기간이 있는 스펙은 만료 30일·7일 전에 알려드려요"
+        action={
+          mode.type === 'closed' && (
+            <Button onClick={() => openForm({ type: 'create' })}>+ 스펙 추가</Button>
+          )
+        }
+      />
 
       {mode.type !== 'closed' && (
-        <div className="mt-6">
-          <SpecForm
-            // key를 바꿔서 다른 스펙을 수정할 때 폼 입력값이 새로 채워지게 함
-            key={mode.type === 'edit' ? mode.spec.specId : 'new'}
-            exams={exams.data?.content ?? []}
-            initial={mode.type === 'edit' ? mode.spec : undefined}
-            submitting={submitting}
-            error={formError}
-            onSubmit={handleSubmit}
-            onCancel={() => setMode({ type: 'closed' })}
-          />
-        </div>
+        <SpecForm
+          // key를 바꿔서 다른 스펙을 수정할 때 폼 입력값이 새로 채워지게 함
+          key={mode.type === 'edit' ? mode.spec.specId : 'new'}
+          exams={exams.data?.content ?? []}
+          initial={mode.type === 'edit' ? mode.spec : undefined}
+          submitting={submitting}
+          error={formError}
+          onSubmit={handleSubmit}
+          onCancel={() => setMode({ type: 'closed' })}
+        />
       )}
 
-      <div className="mt-6">
-        {actionError && (
-          <div className="mb-4">
-            <ErrorMessage message={actionError} />
-          </div>
-        )}
-        {specs.loading && <Loading />}
-        {specs.error && <ErrorMessage message={specs.error} onRetry={specs.reload} />}
+      {actionError && <ErrorMessage message={actionError} />}
+      {specs.loading && <Loading />}
+      {specs.error && <ErrorMessage message={specs.error} onRetry={specs.reload} />}
 
-        {specs.data && specs.data.length === 0 && mode.type === 'closed' && (
-          <div className="py-16 text-center bg-white rounded-xl border border-dashed border-gray-300">
-            <p className="text-gray-500">아직 등록한 스펙이 없어요.</p>
-            <button onClick={() => openForm({ type: 'create' })} className="mt-3 text-sm text-indigo-600 hover:underline">
-              첫 스펙 등록하기
-            </button>
-          </div>
-        )}
+      {specs.data && specs.data.length === 0 && mode.type === 'closed' && (
+        <Card>
+          <EmptyState
+            title="아직 등록한 스펙이 없어요"
+            description="자격증이나 어학 점수를 등록하면 만료일을 대신 챙겨드려요"
+            action={<Button onClick={() => openForm({ type: 'create' })}>첫 스펙 등록하기</Button>}
+          />
+        </Card>
+      )}
 
-        {specs.data && specs.data.length > 0 && (
-          <ul className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+      {specs.data && specs.data.length > 0 && (
+        <Card className="p-2 sm:p-3">
+          <ul>
             {specs.data.map((spec) => (
-              <li key={spec.specId} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold">{spec.name}</span>
-                    {spec.score && <span className="text-sm text-gray-600">{spec.score}</span>}
+              <li
+                key={spec.specId}
+                className="flex flex-col gap-3 rounded-2xl p-4 transition hover:bg-ink-50 sm:flex-row sm:items-center"
+              >
+                {/* 이름 첫 글자 아이콘 */}
+                <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[17px] font-bold text-brand-600 sm:flex">
+                  {spec.name.charAt(0)}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[16px] font-semibold">{spec.name}</span>
+                    {spec.score && <span className="text-[15px] font-semibold text-brand-500">{spec.score}</span>}
                     <SpecStatusBadge status={spec.status} label={spec.statusName} />
                   </div>
-                  <p className="mt-1 text-sm text-gray-500">
-                    취득 {formatDate(spec.acquiredDate)}
+                  <p className="mt-0.5 text-sm text-ink-400">
+                    {formatDate(spec.acquiredDate)} 취득
                     {' · '}
-                    만료 {spec.expireDate ? formatDate(spec.expireDate) : '없음'}
+                    {spec.expireDate ? `${formatDate(spec.expireDate)} 만료` : '만료 없음'}
                     {spec.certNumber && ` · ${spec.certNumber}`}
                   </p>
                 </div>
 
-                {spec.daysUntilExpire !== null && (
-                  <span className={`text-lg font-bold ${D_DAY_COLOR[spec.status]}`}>
-                    {dDayLabel(spec.daysUntilExpire)}
-                  </span>
-                )}
-
-                <div className="flex gap-2 text-sm">
-                  <button
-                    onClick={() => openForm({ type: 'edit', spec })}
-                    className="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50"
-                  >
+                <div className="flex items-center gap-2 sm:gap-3">
+                  {spec.daysUntilExpire !== null && (
+                    <span className={`mr-auto text-xl font-bold sm:mr-2 ${dDayTone(spec.daysUntilExpire)}`}>
+                      {dDayLabel(spec.daysUntilExpire)}
+                    </span>
+                  )}
+                  <Button variant="ghost" size="sm" onClick={() => openForm({ type: 'edit', spec })}>
                     수정
-                  </button>
-                  <button
-                    onClick={() => handleDelete(spec)}
-                    className="px-3 py-1.5 rounded-md border border-red-200 text-red-600 hover:bg-red-50"
-                  >
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => handleDelete(spec)}>
                     삭제
-                  </button>
+                  </Button>
                 </div>
               </li>
             ))}
           </ul>
-        )}
-      </div>
+        </Card>
+      )}
     </div>
   )
 }

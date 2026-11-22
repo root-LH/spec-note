@@ -1,9 +1,9 @@
 export default function ErrorMessage({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 whitespace-pre-line">
-      {message}
+    <div className="flex items-start gap-3 rounded-2xl bg-danger-50 px-4 py-3.5 text-sm text-danger-600">
+      <span className="whitespace-pre-line">{message}</span>
       {onRetry && (
-        <button onClick={onRetry} className="ml-3 underline">
+        <button type="button" onClick={onRetry} className="ml-auto shrink-0 font-semibold underline-offset-2 hover:underline">
           다시 시도
         </button>
       )}
